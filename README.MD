@@ -39,4 +39,5 @@ EXP2 is for SDCard (Recommended to shield this cable with aluminium foils)
 - Sanity check modified
 
 ## Modified files
-- Marlin-2.0.x\Marlin\src\lcd\HD44780\ultralcd_HD44780.cpp
+- Marlin-2.0.x/Marlin/src/lcd/HD44780/ultralcd_HD44780.cpp
+- Marlin-2.0.x/Marlin/src/inc/SanityCheck.h

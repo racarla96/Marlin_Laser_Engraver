@@ -335,6 +335,10 @@ void MarlinUI::set_custom_characters(const HD44780CharSet screen_charset/*=CHARS
 
 }
 
+#if HAS_CUTTER
+  #include "../../feature/spindle_laser.h"
+#endif
+
 void MarlinUI::init_lcd() {
 
   #if ENABLED(LCD_I2C_TYPE_PCF8575)
@@ -971,7 +975,85 @@ void MarlinUI::draw_status_screen() {
       lcd_put_u8str(buffer);
     #endif
 
-  #endif // LCD_INFO_SCREEN_STYLE 1
+  #elif LCD_INFO_SCREEN_STYLE == 2
+
+  // ========== Line 1 ==========
+
+  lcd_put_u8str("Laser");
+  lcd_put_wchar(' ');
+
+  if(cutter.enabled()) lcd_put_u8str("ON ");
+  else lcd_put_u8str("OFF");
+
+  lcd_put_wchar(' ');
+  lcd_put_u8str(ui8tostr3rj(cutter.menuPower));
+  lcd_put_wchar('%');
+
+  // ========== Line 2 ==========
+
+  #if LCD_HEIGHT > 2
+
+    #if LCD_WIDTH < 20
+
+      #if HAS_PRINT_PROGRESS
+        lcd_moveto(0, 2);
+        _draw_print_progress();
+      #endif
+
+    #else // LCD_WIDTH >= 20
+
+      lcd_moveto(0, 1);
+
+      // If the first line has two extruder temps,
+      // show more temperatures on the next line
+
+      const bool show_e_total = TERN0(LCD_SHOW_E_TOTAL, printingIsActive() || marlin_state == MF_SD_COMPLETE);
+
+      if (show_e_total) {
+        #if ENABLED(LCD_SHOW_E_TOTAL)
+          char tmp[20];
+          const uint8_t escale = e_move_accumulator >= 100000.0f ? 10 : 1; // After 100m switch to cm
+          sprintf_P(tmp, PSTR("E %ld%cm       "), uint32_t(_MAX(e_move_accumulator, 0.0f)) / escale, escale == 10 ? 'c' : 'm'); // 1234567mm
+          lcd_put_u8str(tmp);
+        #endif
+      }
+      else {
+        const xy_pos_t lpos = current_position.asLogical();
+        _draw_axis_value(X_AXIS, ftostr4sign(lpos.x), blink);
+        lcd_put_wchar(' ');
+        _draw_axis_value(Y_AXIS, ftostr4sign(lpos.y), blink);
+      }
+
+    #endif // LCD_WIDTH >= 20
+
+  #endif // LCD_HEIGHT > 2
+
+  // ========== Line 3 ==========
+
+  #if LCD_HEIGHT > 3
+
+    lcd_put_wchar(0, 2, LCD_STR_FEEDRATE[0]);
+    lcd_put_u8str(i16tostr3rj(feedrate_percentage));
+    lcd_put_wchar('%');
+
+    char buffer[14];
+    duration_t elapsed = print_job_timer.duration();
+    const uint8_t len = elapsed.toDigital(buffer),
+                  timepos = LCD_WIDTH - len - 1;
+    lcd_put_wchar(timepos, 2, LCD_STR_CLOCK[0]);
+    lcd_put_u8str(buffer);
+
+    #if LCD_WIDTH >= 20
+      lcd_moveto(timepos - 7, 2);
+      #if HAS_PRINT_PROGRESS
+        _draw_print_progress();
+      #endif
+    #endif
+
+  #endif // LCD_HEIGHT > 3
+
+
+  #endif // LCD_INFO_SCREEN_STYLE 2
 
   // ========= Last Line ========
 
